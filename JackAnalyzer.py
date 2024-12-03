@@ -1,5 +1,6 @@
 import sys
 from JackTokenizer import JackTokenizer
+from CompilationEngine import CompilationEngine
 
 
 
@@ -7,22 +8,13 @@ class JackAnalizer:
     
     def __init__(self, input_file):
         self.input_file = input_file
+        self.output_file = ""
 
     
     def run(self):
-        tokenizer = JackTokenizer(self.input_file)
-        while tokenizer.hasMoreTokens():
-            token = tokenizer.advance()
-            print(token)
+        compileEngine = CompilationEngine(self.input_file, self.output_file)
+        compileEngine.compileClass()
             
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

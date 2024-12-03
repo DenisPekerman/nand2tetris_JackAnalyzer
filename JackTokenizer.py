@@ -21,9 +21,9 @@ class JackTokenizer:
         self.data = self.input_file.read()
         self.data = re.sub(r'(//.*|/\*[\s\S]*?\*/)', '\n', self.data)   # remove all comments 
         self.data = self.data.strip()
-
+        # Find all tokens
         self.tokens = self.splitTokens(self.data)
-        # replaces <,>,=,&
+        # replace <,>,=,&
         for i, token in enumerate(self.tokens): 
             token_type, token_value = self.tokenTypeAndValue(token)
             if token_type == "SYMBOL":
