@@ -8,7 +8,7 @@ class JackAnalizer:
     
     def __init__(self, input_file):
         self.input_file = input_file
-        self.output_file = ""
+        self.output_file = "output.xml"
 
     
     def run(self):

@@ -26,23 +26,23 @@ class JackTokenizer:
         # replace <,>,=,&
         for i, token in enumerate(self.tokens): 
             token_type, token_value = self.tokenTypeAndValue(token)
-            if token_type == "SYMBOL":
+            if token_type == "symbol":
                 _, tValue = self.replaceSymbol((token_type, token_value))
                 self.tokens[i] = tValue
 
         
         
     def tokenTypeAndValue(self, tokenValue):
-        if re.match(self.keyword_Pattern, tokenValue) != None:
-            return ("KEYWORD", tokenValue)
-        elif re.match(self.symbol_pattern, tokenValue) != None:
-            return ("SYMBOL", tokenValue)
-        elif re.match(self.int_pattern, tokenValue) != None:
-            return ("INT_CONST", tokenValue)
-        elif re.match(self.str_pattern, tokenValue) != None:
-            return ("STR_CONST", tokenValue)
-        elif re.match(self.identifier_pattern, tokenValue) != None:
-            return ("IDENTIFIER", tokenValue)
+        if re.match(self.keyword_Pattern, tokenValue) is not None:
+            return ("keyword", tokenValue)
+        elif re.match(self.symbol_pattern, tokenValue) is not None:
+            return ("symbol", tokenValue)
+        elif re.match(self.int_pattern, tokenValue) is not None:
+            return ("int_const", tokenValue)
+        elif re.match(self.str_pattern, tokenValue) is not None:
+            return ("str_const", tokenValue)
+        elif re.match(self.identifier_pattern, tokenValue) is not None:
+            return ("identifier", tokenValue)
     
 
     def replaceSymbol(self, input_tuple):
@@ -57,8 +57,12 @@ class JackTokenizer:
             return (tokenType, '&amp;')
         else:              
             return (tokenType, tokenValue)
+        
 
-
+    def peek(self, index: int = 0):
+        return self.tokens[index]
+         
+        
     def splitTokens(self, data):
         return self.token.findall(data)
 
@@ -72,7 +76,7 @@ class JackTokenizer:
             self.currentToken = self.tokens.pop(0)
         else:
             self.currentToken = None
-        return self.currentToken
+        return self.tokenTypeAndValue(self.currentToken)
 
 
 
