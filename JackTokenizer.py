@@ -2,8 +2,7 @@ import re
 
 class JackTokenizer:
 
-    KeywordsCodes = ["class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean",
-                     "void", "true", "false", "null", "this", "let", "do", "if", "else", "while", "return"]
+    KeywordsCodes = ["class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean", "void", "true", "false", "null", "this", "let", "do", "if", "else", "while", "return"]
     SymbolsCodes = ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '<', '>', '=', '~']
 
     keyword_Pattern = '(?!\w)|'.join(KeywordsCodes) + '(?!\w)'
@@ -14,21 +13,17 @@ class JackTokenizer:
     token = re.compile(keyword_Pattern + '|' + symbol_pattern + '|' + int_pattern + '|' + str_pattern + '|' + identifier_pattern)
     
 
-    def __init__(self, input_file):
-        self.input_file = open(input_file, "r")
+    def __init__(self, input_file: str):
         self.currentToken = ""
 
-        self.data = self.input_file.read()
+        self.data = ''
+        if input_file:
+            self.input_file = open(input_file, "r")
+            self.data = self.input_file.read()
+
         self.data = re.sub(r'(//.*|/\*[\s\S]*?\*/)', '\n', self.data)   # remove all comments 
         self.data = self.data.strip()
-        # Find all tokens
-        self.tokens = self.splitTokens(self.data)
-        # replace <,>,=,&
-        for i, token in enumerate(self.tokens): 
-            token_type, token_value = self.tokenTypeAndValue(token)
-            if token_type == "symbol":
-                _, tValue = self.replaceSymbol((token_type, token_value))
-                self.tokens[i] = tValue
+        self.tokens = self.findAllTokens(self.data) # Find all tokens
 
         
         
@@ -59,11 +54,7 @@ class JackTokenizer:
             return (tokenType, tokenValue)
         
 
-    def peek(self, index: int = 0):
-        return self.tokens[index]
-         
-        
-    def splitTokens(self, data):
+    def findAllTokens(self, data):
         return self.token.findall(data)
 
 
@@ -76,8 +67,13 @@ class JackTokenizer:
             self.currentToken = self.tokens.pop(0)
         else:
             self.currentToken = None
-        return self.tokenTypeAndValue(self.currentToken)
+        return self.tokenTypeAndValue(self.currentToken) if self.currentToken else None
 
+
+    def peek(self, index: int = 0):
+        return self.tokens[index] if self.tokens else None
+         
+        
 
 
 

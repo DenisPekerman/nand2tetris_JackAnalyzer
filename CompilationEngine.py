@@ -2,15 +2,21 @@ from JackTokenizer import JackTokenizer
 import xml.etree.cElementTree as ET
 
 class CompilationEngine:
-    def __init__(self, input, output):
+
+    def __init__(self, input: str, output: str):
         """Initializes a new compilation engine."""
+        
         self.tokenizer = JackTokenizer(input)
         self.output_file = open(output, 'wb')
+        
 
     # current_token[0] = token type , current_token[1] = token value
     def _advance(self, node: ET.Element):
         current_token = self.tokenizer.advance()
-        ET.SubElement(node, current_token[0]).text = current_token[1]
+        if current_token: 
+            ET.SubElement(node, current_token[0]).text = current_token[1]
+        else:
+            raise Exception("EOF")
 
     
     def _flush(self):
@@ -25,11 +31,11 @@ class CompilationEngine:
         return parent_node
     
 
-    def _compileSimpleStatement(self, parent_node: ET.Element, child_name: str):
+    def _compileOneLine(self, parent_node: ET.Element, child_name: str):
         node = ET.SubElement(parent_node, child_name)
         while self.tokenizer.peek() != ";":
-            self._advance(node)
-        self._advance(node) # semicolon
+            self._advance(node) # line's body
+        self._advance(node) # ;
 
 
     def compileClass(self):
@@ -39,20 +45,18 @@ class CompilationEngine:
         self.root = ET.Element("class") 
         self._advance(self.root)  # class
         self._advance(self.root)  # class name
-        self._advance(self.root)  # braket  
+        self._advance(self.root)  # {
 
-        # conmpile class variables
-        # keep compiling variables as long as next token is field or static
+        # conmpiles class variables
         while self.tokenizer.peek() in ['static', 'field']:
             self.compileClassVarDec(self.root)
 
-        # compile functions 
+        # compiles subroutine 
         while self.tokenizer.peek() in ['function', 'constructor', 'method']:
             self.compileSubroutine(self.root)
               
-
-        self._advance(self.root)  # closing braket  
-        self._flush()
+        self._advance(self.root)  # } 
+        self._flush() # writes everything to a file
 
         
 
@@ -60,14 +64,7 @@ class CompilationEngine:
         """
         Compiles static variable declaration or a field declaration.
         """
-        # read 2 tokens: first is declration type
-        # second is primitive type
-        # and then advance to get variables names untill reached ';'
-        # write it to xml  
-        node = ET.SubElement(parent_node, "classVarDec")
-        while self.tokenizer.peek() != ';':          
-            self._advance(node) # var value/comma
-        self._advance(node) # semicolon
+        self._compileOneLine(self.root, 'classVarDec')
 
 
 
@@ -79,9 +76,11 @@ class CompilationEngine:
         self._advance(node) # method function or constructor
         self._advance(node) # subroutine type
         self._advance(node) # subroutine name
-        self._advance(node) # opening parentheses
+        self._advance(node) # (
 
         self.compileParameterList(node)
+
+        self._advance(node) # )
 
         self.compileSubroutineBody(node)
 
@@ -92,7 +91,6 @@ class CompilationEngine:
         Compiles (possibly empty) parameter list.
         Does not handle the enclosing parentheses tokens ( ).
         """
-        # Parses a list of parameters for a subroutine.
         node = ET.SubElement(parent_node, "parameterList")
         if self.tokenizer.peek() == ')':
             self._doEmptyToken(node)
@@ -100,8 +98,7 @@ class CompilationEngine:
             while self.tokenizer.peek() in ['char', 'int', 'boolean']:
                 while self.tokenizer.peek() != ')':
                     self._advance(node)
-        self._advance(node) # )
-
+        
 
 
     def compileSubroutineBody(self, parent_node: ET.Element):
@@ -110,10 +107,27 @@ class CompilationEngine:
         """
         # Processes the subroutine body including statements.
         node = ET.SubElement(parent_node, "subroutineBody")
-        self._advance(node) # right curley braket
+        self._advance(node) # {
         self.compileVarDec(node)
         self.compileStatements(node)
-        self._advance(node) # left curley braket
+        self._advance(node) # }
+
+
+
+    def compileVarDec(self, parent_node: ET.Element):
+        """
+        Compiles a variable declaration.
+        """
+        # Handles local variable declarations inside subroutines.
+        node = ET.SubElement(parent_node, "varDec")
+        if self.tokenizer.peek() != 'var':
+            varDec = ET.SubElement(node, "varDec")
+            self._doEmptyToken(varDec)
+        else:
+            while self.tokenizer.peek() == 'var':
+                while self.tokenizer.peek() != ';':     
+                    self._advance(node)
+                self._advance(node) # ;
 
         
 
@@ -144,28 +158,11 @@ class CompilationEngine:
 
 
 
-    def compileVarDec(self, parent_node: ET.Element):
-        """
-        Compiles a variable declaration.
-        """
-        # Handles local variable declarations inside subroutines.
-        node = ET.SubElement(parent_node, "varDec")
-        if self.tokenizer.peek() != 'var':
-            varDec = ET.SubElement(node, "varDec")
-            self._doEmptyToken(varDec)
-        else:
-            while self.tokenizer.peek() == 'var':
-                while self.tokenizer.peek() != ';':     
-                    self._advance(node)
-                self._advance(node)
-    
-    
-    
     def compileLet(self, parent_node: ET.Element):
         """
         Compiles a let statement.
         """
-        self.compileSimpleStatement(parent_node, "letStatement")
+        self._compileOneLine(parent_node, "letStatement")
         
 
     def compileIf(self, parent_node: ET.Element ):
@@ -189,6 +186,7 @@ class CompilationEngine:
             self._advance(node) # }
 
 
+
     def compileWhile(self, parent_node: ET.Element):
         """
         Compiles a while statement.
@@ -208,7 +206,12 @@ class CompilationEngine:
         """
         Compiles a do statement.
         """
-        self.compileSimpleStatement(parent_node, "doStatement")
+        node = ET.SubElement(parent_node, "doStatement")
+        while self.tokenizer.peek() != '(':
+            self._advance(node) # do someSubroutine
+        self._advance(node) # (
+        self.compileExpressionList(node)
+        self._advance(node) # )
         
 
 
@@ -216,7 +219,7 @@ class CompilationEngine:
         """
         Compiles a return statement.
         """
-        self.compileSimpleStatement(parent_node, "return")
+        self._compileOneLine(parent_node, "return")
 
 
 
@@ -224,9 +227,30 @@ class CompilationEngine:
         """
         Compiles an expression.
         """
-        # Processes arithmetic, logical, or constant expressions.
-        pass
+        node = ET.SubElement(parent_node, "expression")
+        token = self.tokenizer.peek()
+        type, value = self.tokenizer.tokenTypeAndValue(token)
+        
+        if type == 'symbol':
+            pass
 
+        # while self.tokenizer.peek() != ')':
+        #     token = self.tokenizer.peek()
+        #     token_type, token_value = self.tokenizer.replaceSymbol(token)
+
+        #     if token_type == 'symbol' and token_value in ["<", '>', '"','&']:
+        #         _, replaced_value = self.tokenizer.replaceSymbol((token_type, token_value))
+
+        #         elem = ET.SubElement(node, token_type)
+        #         elem.text = replaced_value
+
+        #         self.tokenizer.advance()
+        #     else: 
+        #         self._advance(node)
+        # pass
+
+
+            
     def compileTerm(self, parent_node: ET.Element):
         """
         Compiles a term. If the current token is an identifier, resolves its type:
@@ -234,7 +258,16 @@ class CompilationEngine:
         - Handles symbols like [ ], ( ), or .
         """
         # Processes individual terms within expressions.
-        pass
+        node = ET.SubElement(parent_node, "term")
+        next_token = self.tokenizer.peek(index=1)
+
+        if next_token == '[':
+            pass
+            #do compile array on the current token
+        elif next_token == '.':
+            #do compile subroutine-call
+            pass
+        
 
     def compileExpressionList(self, parent_node: ET.Element):
         """
@@ -242,4 +275,13 @@ class CompilationEngine:
         Returns the number of expressions in the list.
         """
         # Processes lists of expressions, often in argument lists.
-        pass
+        node = ET.SubElement(parent_node, "expressionList")
+        if self.tokenizer.peek() == ')':
+            self._doEmptyToken(node)
+        else:
+            # do sub(1,2,3)
+            while self.tokenizer.peek() != ')':
+                self._advance(node) # 1, 2, 3
+                
+         
+

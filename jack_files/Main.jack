@@ -6,10 +6,11 @@
 
 
 class Main {
-    static boolean test;    // Added for testing -- there is no static keyword
+    static boolean test, bazinga;    // Added for testing -- there is no static keyword
                             // in the Square files.
+    field int shabang;
 
-    function void main() {
+    function void main(int boba, boolean fix, char frog) {
         var SquareGame game;
         var int x;
         let x=15; let game = game; do game.run();
@@ -21,7 +22,11 @@ class Main {
 
     function void more() {  // Added to test Jack syntax that is not used in
         var boolean b;      // the Square files.
+        var int a, c, d;
         if (b) {
+            if (a) {
+            
+            }
         }
         else {              // There is no else keyword in the Square files.
         }
