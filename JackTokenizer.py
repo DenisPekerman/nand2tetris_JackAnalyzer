@@ -33,9 +33,9 @@ class JackTokenizer:
         elif re.match(self.symbol_pattern, tokenValue) is not None:
             return ("symbol", tokenValue)
         elif re.match(self.int_pattern, tokenValue) is not None:
-            return ("int_const", tokenValue)
+            return ("integerConstant", tokenValue)
         elif re.match(self.str_pattern, tokenValue) is not None:
-            return ("str_const", tokenValue)
+            return ("stringConstant", tokenValue)
         elif re.match(self.identifier_pattern, tokenValue) is not None:
             return ("identifier", tokenValue)
     
@@ -71,7 +71,7 @@ class JackTokenizer:
 
 
     def peek(self, index: int = 0):
-        return self.tokens[index] if self.tokens else None
+        return self.tokens[index] if len(self.tokens) > index else None
          
         
 

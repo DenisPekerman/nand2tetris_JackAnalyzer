@@ -38,6 +38,13 @@ class CompilationEngine:
         self._advance(node) # ;
 
 
+    def _compileArrayIndex(self, parent_node: ET.Element):
+        self._advance(parent_node)
+        self.compileExpression(parent_node)
+        self._advance(parent_node)
+
+
+
     def compileClass(self):
         """
         Compiles a complete class.
@@ -121,8 +128,7 @@ class CompilationEngine:
         # Handles local variable declarations inside subroutines.
         node = ET.SubElement(parent_node, "varDec")
         if self.tokenizer.peek() != 'var':
-            varDec = ET.SubElement(node, "varDec")
-            self._doEmptyToken(varDec)
+            self._doEmptyToken(node)
         else:
             while self.tokenizer.peek() == 'var':
                 while self.tokenizer.peek() != ';':     
@@ -155,6 +161,9 @@ class CompilationEngine:
                 
             elif self.tokenizer.peek() == 'return':
                 self.compileReturn(node)
+            
+            else:
+                break
 
 
 
@@ -162,7 +171,11 @@ class CompilationEngine:
         """
         Compiles a let statement.
         """
-        self._compileOneLine(parent_node, "letStatement")
+        node = ET.SubElement(parent_node, "letStatement")
+        self._advance(node) # let
+        self._advance(node) # identifier
+        self._advance(node) # =
+        self.compileExpressionList(node)
         
 
     def compileIf(self, parent_node: ET.Element ):
@@ -228,11 +241,11 @@ class CompilationEngine:
         Compiles an expression.
         """
         node = ET.SubElement(parent_node, "expression")
-        token = self.tokenizer.peek()
-        type, value = self.tokenizer.tokenTypeAndValue(token)
         
-        if type == 'symbol':
-            pass
+        if self.tokenizer.peek() == '(':
+            self.compileExpression(node)
+        else:
+            self.compileTerm(node)
 
         # while self.tokenizer.peek() != ')':
         #     token = self.tokenizer.peek()
@@ -259,14 +272,47 @@ class CompilationEngine:
         """
         # Processes individual terms within expressions.
         node = ET.SubElement(parent_node, "term")
-        next_token = self.tokenizer.peek(index=1)
 
-        if next_token == '[':
-            pass
-            #do compile array on the current token
-        elif next_token == '.':
-            #do compile subroutine-call
-            pass
+        current_token = self.tokenizer.peek()
+        current_token_type, _ = self.tokenizer.tokenTypeAndValue(current_token)
+
+        next_token = self.tokenizer.peek(index=1)
+        if next_token:
+            next_token_type, _ = self.tokenizer.tokenTypeAndValue(next_token)
+
+        if current_token == '(':
+            self._advance(node) # (
+            self.compileExpression(node) # expression
+            self._advance(node) # )
+
+        elif (current_token_type in ['integerConstant', 'stringConstant'] or 
+              current_token in ['true', 'false', 'null', 'this']):
+            self._advance(node) 
+        
+        elif current_token in ['-', '~']:
+            self._advance(node) # - or ~ 
+            self.compileTerm(node)
+        
+        elif current_token_type == 'identifier':
+            if next_token == '(':
+                self._advance(node) # subroutine
+                self._advance(node) # (
+                self.compileExpressionList(node)
+            elif next_token == '.': 
+                self._advance(node) # class
+                self._advance(node) # .
+                self._advance(node) # subroutine
+                self._advance(node) # (
+                self.compileExpressionList(node)
+            else:
+                self._advance(node)
+    
+        # if next_token == '[':
+        #     pass
+        #     #do compile array on the current token
+        # elif next_token == '.':
+        #     #do compile subroutine-call
+        #     pass
         
 
     def compileExpressionList(self, parent_node: ET.Element):
@@ -279,9 +325,9 @@ class CompilationEngine:
         if self.tokenizer.peek() == ')':
             self._doEmptyToken(node)
         else:
-            # do sub(1,2,3)
             while self.tokenizer.peek() != ')':
-                self._advance(node) # 1, 2, 3
+                self.compileExpression(node)
+                self._advance(node) # ,
                 
          
 
