@@ -25,8 +25,7 @@ class JackTokenizer:
         self.data = self.data.strip()
         self.tokens = self.findAllTokens(self.data) # Find all tokens
 
-        
-        
+
     def tokenTypeAndValue(self, tokenValue):
         if re.match(self.keyword_Pattern, tokenValue) is not None:
             return ("keyword", tokenValue)
@@ -39,19 +38,6 @@ class JackTokenizer:
         elif re.match(self.identifier_pattern, tokenValue) is not None:
             return ("identifier", tokenValue)
     
-
-    def replaceSymbol(self, input_tuple):
-        tokenType, tokenValue = input_tuple
-        if tokenValue == '<': 
-            return (tokenType, '&lt;')
-        elif tokenValue == '>': 
-            return (tokenType, '&gt;')
-        elif tokenValue == '"': 
-            return (tokenType, '&quot;')
-        elif tokenValue == '&': 
-            return (tokenType, '&amp;')
-        else:              
-            return (tokenType, tokenValue)
         
 
     def findAllTokens(self, data):

@@ -10,17 +10,29 @@ class TestJackTokenizer(unittest.TestCase):
     def setUp(self) -> None:
         self.compilationEngine = CompilationEngine('', "temp.xml")
     
+    def getXmlFmtStr(self, node):
+        ET.indent(node)
+        return ET.tostring(node).decode('ascii')
 
 
-    def checkXml(self, node, expected_str):
-        ET.indent(node, space="", level=0)
-        received_str = ET.tostring(node)
+    def assertXml(self, node, expected_str):
+        ET.indent(node)
+        received_str = self.getXmlFmtStr(node)
 
         expected_node = ET.fromstring(expected_str)
-        ET.indent(expected_node, space="", level=0)
-        expected_fmt_str = ET.tostring(expected_node)
+        expected_fmt_str = self.getXmlFmtStr(expected_node)
 
-        self.assertEqual(received_str, expected_fmt_str)
+        if received_str != expected_fmt_str:
+            msg = f"""
+------------------
+Expected:
+{expected_fmt_str}
+------------------
+Received:
+{received_str}
+------------------
+                """
+            self.fail(msg)
 
 
 
@@ -38,7 +50,7 @@ class TestJackTokenizer(unittest.TestCase):
             </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
@@ -59,7 +71,7 @@ class TestJackTokenizer(unittest.TestCase):
             </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
@@ -68,7 +80,7 @@ class TestJackTokenizer(unittest.TestCase):
         root = ET.Element("test") 
         self.compilationEngine.compileDo(root)
         expected = """
-            <test>
+        <test>
             <doStatement>
                 <keyword>do</keyword>
                 <identifier>someFunc</identifier>
@@ -81,11 +93,11 @@ class TestJackTokenizer(unittest.TestCase):
             </expression>            
                 </expressionList>
                 <symbol>)</symbol>
-                </doStatement>
-            </test>
+            </doStatement>
+        </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
@@ -95,24 +107,36 @@ class TestJackTokenizer(unittest.TestCase):
         root = ET.Element("test") 
         self.compilationEngine.compileDo(root)
         expected = """
-            <test>
+        <test>
             <doStatement>
                 <keyword>do</keyword>
                 <identifier>someFunc</identifier>
                 <symbol>(</symbol>
                 <expressionList>
+                <expression>
+                    <term>
                     <identifier>x</identifier>
-                    <symbol>,</symbol>
+                    </term>
+                </expression>
+                <symbol>,</symbol>
+                <expression>
+                    <term>
                     <identifier>y</identifier>
-                    <symbol>,</symbol>
-                    <int_const>3</int_const>
+                    </term>
+                </expression>
+                <symbol>,</symbol>
+                <expression>
+                    <term>
+                    <integerConstant>3</integerConstant>
+                    </term>
+                </expression>
                 </expressionList>
                 <symbol>)</symbol>
-                </doStatement>
-            </test>
+            </doStatement>
+        </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
@@ -132,7 +156,7 @@ class TestJackTokenizer(unittest.TestCase):
             </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
@@ -141,7 +165,7 @@ class TestJackTokenizer(unittest.TestCase):
         self.compilationEngine.tokenizer.tokens = ['if', '(', '(', 'x', '>', '4', ')', '&', 
                                                    '(', 'y', '=', '8', ')', ')', '{', '}' ]
         root = ET.Element("test") 
-        self.compilationEngine.compileParameterList(root)
+        self.compilationEngine.compileIf(root)
         expected = """
         <test>
             <ifStatement>
@@ -161,7 +185,7 @@ class TestJackTokenizer(unittest.TestCase):
                         </expression>
                         <symbol>)</symbol>
                     </term>
-                    <symbol>&</symbol>
+                    <symbol>&amp;</symbol>
                     <term>
                         <symbol>(</symbol>
                         <expression>
@@ -177,14 +201,16 @@ class TestJackTokenizer(unittest.TestCase):
                     </term>
                 </expression>
                 <symbol>)</symbol>
+                <symbol>{</symbol>
+                <statements />
+                <symbol>}</symbol>
             </ifStatement>
-            <symbol>{</symbol>
-            <symbol>}</symbol>
+            
         </test>
 
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
     
     def test_compileIf_simple(self):
@@ -196,26 +222,171 @@ class TestJackTokenizer(unittest.TestCase):
         expected = """
         <test>
             <ifStatement>
-                <keyword> if </keyword>
-                <symbol> ( </symbol>
+                <keyword>if</keyword>
+                <symbol>(</symbol>
                 <expression>
                     <term>
-                        <identifier> x </identifier>
+                        <identifier>x</identifier>
                     </term>
-                    <symbol> > </symbol>
+                    <symbol>></symbol>
                     <term>
-                        <integerConstant> 4 </integerConstant>
+                        <integerConstant>4</integerConstant>
                     </term>
                 </expression>
-                <symbol> ) </symbol>
-                <symbol> { </symbol>
-            <symbol> } </symbol>
+                <symbol>)</symbol>
+                <symbol>{</symbol>
+                <statements />
+                <symbol>}</symbol>
             </ifStatement>
         </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
+
+    def test_compileIf_ifElse(self):
+        self.compilationEngine.tokenizer.tokens = ['if', '(', 'x', '>', '4', ')'
+                                                   , '{', '}', 'else', '{', '}' ]
+        root = ET.Element("test") 
+        self.compilationEngine.compileIf(root)
+        expected = """
+        <test>
+            <ifStatement>
+                <keyword>if</keyword>
+                <symbol>(</symbol>
+                <expression>
+                    <term>
+                        <identifier>x</identifier>
+                    </term>
+                    <symbol>></symbol>
+                    <term>
+                        <integerConstant>4</integerConstant>
+                    </term>
+                </expression>
+                <symbol>)</symbol>
+                <symbol>{</symbol>
+                <statements />
+                <symbol>}</symbol>
+                <keyword>else</keyword>
+                <symbol>{</symbol>
+                <statements />
+                <symbol>}</symbol>
+            </ifStatement>
+        </test>
+        """
+
+        self.assertXml(root, expected)
+
+
+    def test_compileWhile(self):
+        # if (x>4)
+        self.compilationEngine.tokenizer.tokens = ['while', '(', 'x', '>', '4', ')'
+                                                   , '{', '}']
+        root = ET.Element("test") 
+        self.compilationEngine.compileWhile(root)
+        expected = """
+        <test>
+            <whileStatement>
+                <keyword>while</keyword>
+                <symbol>(</symbol>
+                <expression>
+                    <term>
+                        <identifier>x</identifier>
+                    </term>
+                    <symbol>></symbol>
+                    <term>
+                        <integerConstant>4</integerConstant>
+                    </term>
+                </expression>
+                <symbol>)</symbol>
+                <symbol>{</symbol>
+                <statements />
+                <symbol>}</symbol>
+            </whileStatement>
+        </test>
+        """
+
+        self.assertXml(root, expected)
+
+
+    def test_compileExpression_simple(self):
+        self.compilationEngine.tokenizer.tokens = ['x', '+', '2']
+                                                  
+        root = ET.Element("test") 
+        self.compilationEngine.compileExpression(root)
+        expected = """
+        <test>
+            <expression>
+                <term>
+                    <identifier>x</identifier>
+                </term>
+                <symbol>+</symbol>
+                <term>
+                    <integerConstant>2</integerConstant>
+                </term>
+            </expression>
+        </test>
+        """
+
+        self.assertXml(root, expected)
+
+
+    def test_compileExpression_simple1(self):
+        self.compilationEngine.tokenizer.tokens = ['x', '+', '2', '*', '7']
+                                                  
+        root = ET.Element("test") 
+        self.compilationEngine.compileExpression(root)
+        expected = """
+        <test>
+            <expression>
+                <term>
+                    <identifier>x</identifier>
+                </term>
+                <symbol>+</symbol>
+                <term>
+                    <integerConstant>2</integerConstant>
+                </term>
+                <symbol>*</symbol>
+                <term>
+                    <integerConstant>7</integerConstant>
+                </term>
+            </expression>
+        </test>
+        """
+
+        self.assertXml(root, expected)
+
+
+    def test_compileExpression_brackets(self):
+        self.compilationEngine.tokenizer.tokens = ['x', '+','(', '2', '*', '7',')']
+                                                  
+        root = ET.Element("test") 
+        self.compilationEngine.compileExpression(root)
+        expected = """
+        <test>
+            <expression>
+                <term>
+                    <identifier>x</identifier>
+                </term>
+                <symbol>+</symbol>
+                <term>
+                    <symbol>(</symbol>
+                    <expression>
+                        <term>
+                            <integerConstant>2</integerConstant>
+                        </term>
+                        <symbol>*</symbol>
+                        <term>
+                            <integerConstant>7</integerConstant>
+                        </term>
+                    </expression>
+                    <symbol>)</symbol>
+                </term>
+            </expression>
+        </test>
+        """
+
+        self.assertXml(root, expected)
 
 
     def test_compileTerm_varName(self):
@@ -231,7 +402,7 @@ class TestJackTokenizer(unittest.TestCase):
         </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
     def test_compileTerm_boolean(self):
@@ -247,13 +418,13 @@ class TestJackTokenizer(unittest.TestCase):
         </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
     def test_compileTerm_listItem(self):
         # x[1+2]
-        self.compilationEngine.tokenizer.tokens = ['x', '[', '1', '+', '2', ']'], 
+        self.compilationEngine.tokenizer.tokens = ['x', '[', '1', '+', '2', ']']
                                                   
         root = ET.Element("test") 
         self.compilationEngine.compileTerm(root)
@@ -276,13 +447,12 @@ class TestJackTokenizer(unittest.TestCase):
         </test>
         """
 
-        self.checkXml(root, expected)
-
+        self.assertXml(root, expected)
 
 
     def test_compileTerm_subroutineCall(self):
-        # foo(1+2)
-        self.compilationEngine.tokenizer.tokens = ['foo', '(', '1', '+', '2', ')'], 
+        # foo(1)
+        self.compilationEngine.tokenizer.tokens = ['foo', '(', '1', ')']
                                                   
         root = ET.Element("test") 
         self.compilationEngine.compileTerm(root)
@@ -291,21 +461,50 @@ class TestJackTokenizer(unittest.TestCase):
             <term>
                 <identifier>foo</identifier>
                 <symbol>(</symbol>
-                <expression>
-                    <term>
-                        <integerConstant>1</integerConstant>
-                    </term>
-                    <symbol>+</symbol>
-                    <term>
-                        <integerConstant>2</integerConstant>
-                    </term>
-                </expression>
+                <expressionList>
+                    <expression>
+                        <term>
+                            <integerConstant>1</integerConstant>
+                        </term>
+                    </expression>
+                </expressionList>
                 <symbol>)</symbol>
             </term>
         </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
+
+
+    def test_compileTerm_classSubroutine(self):
+        self.compilationEngine.tokenizer.tokens = ['x', '.', 'foo', '(', '1', '+', '2', ')']
+                                                  
+        root = ET.Element("test") 
+        self.compilationEngine.compileTerm(root)
+        expected = """
+        <test>
+            <term>
+                <identifier>x</identifier>
+                <symbol>.</symbol>
+                <identifier>foo</identifier>
+                <symbol>(</symbol>
+                <expressionList>
+                    <expression>
+                        <term>
+                            <integerConstant>1</integerConstant>
+                        </term>
+                        <symbol>+</symbol>
+                        <term>
+                            <integerConstant>2</integerConstant>
+                        </term>
+                    </expression>
+                </expressionList>
+                <symbol>)</symbol>
+            </term>
+        </test>
+        """
+
+        self.assertXml(root, expected)
 
 
 
@@ -332,7 +531,7 @@ class TestJackTokenizer(unittest.TestCase):
         </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
 
 
@@ -358,7 +557,7 @@ class TestJackTokenizer(unittest.TestCase):
         </test>
         """
 
-        self.checkXml(root, expected)
+        self.assertXml(root, expected)
 
     
 """
