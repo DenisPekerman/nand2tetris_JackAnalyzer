@@ -560,17 +560,3 @@ Received:
         self.assertXml(root, expected)
 
     
-"""
-x + 1
-x - 1
-x/y
-x*y
-x < y
-x > y
-x | y
-x & y
-(x + 3) > y
-x[2] > 3
-(x+2)*3
-~(x)
-"""

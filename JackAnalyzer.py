@@ -2,13 +2,11 @@ import sys
 from JackTokenizer import JackTokenizer
 from CompilationEngine import CompilationEngine
 
-
-
-class JackAnalizer:
+class JackAnalyzer:
     
     def __init__(self, input_file):
         self.input_file = input_file
-        self.output_file = "output.xml"
+        self.output_file = input_file.replace('.jack', '.xml')
 
     
     def run(self):
@@ -20,7 +18,7 @@ class JackAnalizer:
 if __name__ == "__main__":
 
     input = sys.argv[1]
-    main = JackAnalizer(input)
+    main = JackAnalyzer(input)
     main.run()
     
     

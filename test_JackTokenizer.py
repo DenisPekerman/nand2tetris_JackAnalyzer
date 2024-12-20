@@ -42,25 +42,6 @@ class TestJackTokenizer(unittest.TestCase):
         actual_tokens = self.jackTokenizer.tokens
         self.assertEqual(actual_tokens, [])
 
-
-    # def test_init(self):
-    #     expected_tokens = [
-    #         "class", "Main", "{",
-    #         "static", "boolean", "test", ";",
-    #         "function", "void", "func", "(", "int", "y", ")", "{",
-    #         "var", "SquareGame", "game", ";",
-    #         "var", "int", "x", ";",
-    #         "if", "(", "x", ">", "1", ")", "{",
-    #         "let", "y", "=", "0", ";",
-    #         "}",
-    #         "do", "game", ".", "dispose", "(", ")", ";",
-    #         "return", ";",
-    #         "}",
-    #         "}"
-    #     ]
-    #     actual_tokens = self.jackTokenizer.tokens
-    #     self.assertEqual(actual_tokens, expected_tokens)
-
     
     def test_hasMoreTokens_true(self):
         self.jackTokenizer.tokens = ['class', 'Main', '{']
